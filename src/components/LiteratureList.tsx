@@ -45,7 +45,7 @@ const DeleteButton: React.FC<{ onDelete: () => void }> = ({ onDelete }) => {
 
 export const LiteratureList: React.FC<LiteratureListProps> = ({ literature, onAdd, onEdit, onDelete }) => {
   const [search, setSearch] = React.useState('');
-  const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = React.useState<{ data: string, caption: string } | null>(null);
 
   const filteredLit = literature.filter(l => 
     l.title.toLowerCase().includes(search.toLowerCase()) || 
@@ -149,15 +149,21 @@ export const LiteratureList: React.FC<LiteratureListProps> = ({ literature, onAd
                     <div className="text-xs font-bold text-slate-400 uppercase mb-3">文献配图</div>
                     <div className="flex flex-wrap gap-3">
                       {lit.images.map((img, idx) => (
-                        <div 
-                          key={idx} 
-                          className="relative w-24 h-24 rounded-lg overflow-hidden cursor-pointer group"
-                          onClick={() => setSelectedImage(img)}
-                        >
-                          <img src={img} alt="Literature" className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
-                          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <Maximize2 className="text-white w-4 h-4" />
+                        <div key={idx} className="flex flex-col gap-1">
+                          <div 
+                            className="relative w-24 h-24 rounded-lg overflow-hidden cursor-pointer group border border-slate-100"
+                            onClick={() => setSelectedImage(img)}
+                          >
+                            <img src={typeof img === 'string' ? img : img.data} alt={(typeof img !== 'string' && img.caption) || "Literature"} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <Maximize2 className="text-white w-4 h-4" />
+                            </div>
                           </div>
+                          {typeof img !== 'string' && img.caption && (
+                            <div className="text-[10px] text-slate-500 text-center w-24 truncate" title={img.caption}>
+                              {img.caption}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -191,17 +197,22 @@ export const LiteratureList: React.FC<LiteratureListProps> = ({ literature, onAd
       {/* Image Modal */}
       {selectedImage && (
         <div 
-          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 animate-in fade-in duration-300"
+          className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center p-4 animate-in fade-in duration-300"
           onClick={() => setSelectedImage(null)}
         >
           <button className="absolute top-4 right-4 text-white/70 hover:text-white p-2">
             <X className="w-8 h-8" />
           </button>
           <img 
-            src={selectedImage} 
-            alt="Full size" 
-            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+            src={typeof selectedImage === 'string' ? selectedImage : selectedImage.data} 
+            alt={(typeof selectedImage !== 'string' && selectedImage.caption) || "Full size"} 
+            className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
           />
+          {typeof selectedImage !== 'string' && selectedImage.caption && (
+            <div className="text-white mt-4 text-sm bg-black/50 px-4 py-2 rounded-full backdrop-blur-sm">
+              {selectedImage.caption}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -242,12 +253,24 @@ export const LiteratureForm: React.FC<LiteratureFormProps> = ({ initialData, onS
         reader.onloadend = () => {
           setFormData(prev => ({
             ...prev,
-            images: [...(prev.images || []), reader.result as string]
+            images: [...(prev.images || []), { data: reader.result as string, caption: '' }]
           }));
         };
         reader.readAsDataURL(file);
       });
     }
+  };
+
+  const handleUpdateImageCaption = (index: number, caption: string) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images?.map((img, i) => {
+        if (i === index) {
+          return typeof img === 'string' ? { data: img, caption } : { ...img, caption };
+        }
+        return img;
+      })
+    }));
   };
 
   const handleRemoveImage = (index: number) => {
@@ -370,21 +393,31 @@ export const LiteratureForm: React.FC<LiteratureFormProps> = ({ initialData, onS
           
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">文献配图</label>
-            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mb-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-2">
               {formData.images?.map((img, idx) => (
-                <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-slate-100 group">
-                  <img src={img} alt="Literature" className="w-full h-full object-cover" />
-                  <button 
-                    type="button"
-                    onClick={() => handleRemoveImage(idx)}
-                    className="absolute top-1 right-1 p-1 bg-rose-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
+                <div key={idx} className="relative flex flex-col gap-2 group">
+                  <div className="relative aspect-square rounded-lg overflow-hidden border border-slate-100">
+                    <img src={typeof img === 'string' ? img : img.data} alt="Literature" className="w-full h-full object-cover" />
+                    <button 
+                      type="button"
+                      onClick={() => handleRemoveImage(idx)}
+                      className="absolute top-2 right-2 p-1.5 bg-rose-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <input 
+                    type="text"
+                    value={typeof img === 'string' ? '' : img.caption}
+                    onChange={(e) => handleUpdateImageCaption(idx, e.target.value)}
+                    placeholder="添加图片备注..."
+                    className="w-full text-xs px-2 py-1.5 bg-slate-50 border border-slate-200 rounded focus:ring-1 focus:ring-brand-accent/30 outline-none text-slate-600"
+                  />
                 </div>
               ))}
               <label className="aspect-square rounded-lg border-2 border-dashed border-slate-200 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors">
                 <Plus className="w-6 h-6 text-slate-300" />
+                <span className="text-xs text-slate-400 mt-2 font-medium">上传图片</span>
                 <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} />
               </label>
             </div>

@@ -16,9 +16,12 @@ export interface ExperimentDataRow {
 export interface ExperimentTimer {
   id: string;
   label: string;
-  seconds: number;
-  isRunning: boolean;
-  lastTick?: number;
+  time: string;
+}
+
+export interface ExperimentImage {
+  data: string;
+  caption: string;
 }
 
 export interface ExperimentRecord {
@@ -35,7 +38,7 @@ export interface ExperimentRecord {
   process: string;
   data: ExperimentDataRow[];
   results: string;
-  images: string[]; // Base64 strings for simplicity in LocalStorage
+  images: ExperimentImage[]; // Base64 strings with captions
   reflection: string;
   timers?: ExperimentTimer[];
   createdAt: number;
@@ -51,7 +54,7 @@ export interface LiteratureRecord {
   process: string;
   results: string;
   conditions: string;
-  images?: string[];
+  images?: ExperimentImage[];
   notes: string;
   createdAt: number;
 }

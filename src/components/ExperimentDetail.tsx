@@ -11,6 +11,8 @@ import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import ReactMarkdown from 'react-markdown';
 
+import { toPng } from 'html-to-image';
+
 interface ExperimentDetailProps {
   experiment: ExperimentRecord;
   onBack: () => void;
@@ -19,31 +21,40 @@ interface ExperimentDetailProps {
 }
 
 export const ExperimentDetail: React.FC<ExperimentDetailProps> = ({ experiment, onBack, onEdit, onDelete }) => {
-  const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = React.useState<{ data: string, caption: string } | null>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [showShareToast, setShowShareToast] = React.useState(false);
 
   const handleShare = async () => {
-    const summary = `
-实验标题: ${experiment.title}
-日期: ${experiment.date}
-类型: ${experiment.type}
-状态: ${experiment.status}
-
-实验目的:
-${experiment.purpose || '无'}
-
-实验结果:
-${experiment.results || '无'}
-    `.trim();
-
+    const element = document.getElementById('experiment-detail-content');
+    if (!element) return;
+    
     try {
-      await navigator.clipboard.writeText(summary);
+      // Temporarily hide the header actions for cleaner screenshot
+      const actionsEl = document.getElementById('experiment-detail-actions');
+      if (actionsEl) actionsEl.style.display = 'none';
+
+      const dataUrl = await toPng(element, {
+        pixelRatio: 2,
+        backgroundColor: '#ffffff',
+        style: {
+          transform: 'scale(1)',
+          transformOrigin: 'top left'
+        }
+      });
+      
+      if (actionsEl) actionsEl.style.display = 'flex';
+
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `${experiment.title}_实验记录.png`;
+      link.click();
+      
       setShowShareToast(true);
       setTimeout(() => setShowShareToast(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy: ', err);
-      alert('复制失败，请手动选择文本复制');
+    } catch (error) {
+      console.error('Failed to generate image', error);
+      alert('生成长图失败，请重试');
     }
   };
 
@@ -57,9 +68,9 @@ ${experiment.results || '无'}
   };
 
   return (
-    <div className="max-w-5xl mx-auto pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div id="experiment-detail-content" className="max-w-5xl mx-auto pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500 bg-slate-50 min-h-screen">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 sticky top-16 z-40 bg-brand-secondary/80 backdrop-blur-md py-4 border-b border-slate-200">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 sticky top-16 z-40 bg-brand-secondary/80 backdrop-blur-md py-4 border-b border-slate-200 px-4 md:px-0">
         <div className="flex items-center gap-4">
           <button 
             onClick={onBack}
@@ -84,7 +95,7 @@ ${experiment.results || '无'}
             </div>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div id="experiment-detail-actions" className="flex gap-2">
           {isDeleting ? (
             <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-2">
               <span className="text-xs font-bold text-rose-500">确定删除？</span>
@@ -123,13 +134,13 @@ ${experiment.results || '无'}
                 <button 
                   onClick={handleShare}
                   className="p-2 text-slate-500 hover:text-brand-accent hover:bg-slate-100 rounded-lg transition-all" 
-                  title="分享摘要"
+                  title="生成长图"
                 >
                   <Share2 className="w-5 h-5" />
                 </button>
                 {showShareToast && (
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-slate-800 text-white text-[10px] rounded-full whitespace-nowrap animate-in fade-in slide-in-from-bottom-1">
-                    已复制摘要到剪贴板
+                    已生成长图并下载
                   </div>
                 )}
               </div>
@@ -294,16 +305,14 @@ ${experiment.results || '无'}
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
               <h3 className="font-bold text-slate-800 border-b border-slate-100 pb-2 flex items-center gap-2">
                 <Clock className="w-4 h-4 text-brand-accent" />
-                实验计时记录
+                时间点记录
               </h3>
               <div className="space-y-3">
                 {experiment.timers.map(timer => (
-                  <div key={timer.id} className="flex justify-between items-center p-2 bg-slate-50 rounded-lg border border-slate-100">
-                    <span className="text-xs font-bold text-slate-500 uppercase">{timer.label}</span>
-                    <span className="text-sm font-mono font-bold text-slate-700">
-                      {Math.floor(timer.seconds / 3600).toString().padStart(2, '0')}:
-                      {Math.floor((timer.seconds % 3600) / 60).toString().padStart(2, '0')}:
-                      {(timer.seconds % 60).toString().padStart(2, '0')}
+                  <div key={timer.id} className="flex flex-col gap-1 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                    <span className="text-sm font-bold text-slate-700">{timer.label}</span>
+                    <span className="text-xs font-mono text-slate-500">
+                      {timer.time}
                     </span>
                   </div>
                 ))}
@@ -315,17 +324,23 @@ ${experiment.results || '无'}
           {experiment.images.length > 0 && (
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
               <h3 className="font-bold text-slate-800 border-b border-slate-100 pb-2">实验图库</h3>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-4">
                 {experiment.images.map((img, idx) => (
-                  <div 
-                    key={idx} 
-                    className="relative aspect-square rounded-lg overflow-hidden cursor-pointer group"
-                    onClick={() => setSelectedImage(img)}
-                  >
-                    <img src={img} alt="Experiment" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <Maximize2 className="text-white w-5 h-5" />
+                  <div key={idx} className="flex flex-col gap-2">
+                    <div 
+                      className="relative aspect-square rounded-lg overflow-hidden cursor-pointer group border border-slate-100"
+                      onClick={() => setSelectedImage(img)}
+                    >
+                      <img src={typeof img === 'string' ? img : img.data} alt={(typeof img !== 'string' && img.caption) || "Experiment"} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Maximize2 className="text-white w-5 h-5" />
+                      </div>
                     </div>
+                    {typeof img !== 'string' && img.caption && (
+                      <div className="text-xs text-slate-500 text-center px-1 truncate" title={img.caption}>
+                        {img.caption}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -337,17 +352,22 @@ ${experiment.results || '无'}
       {/* Image Modal */}
       {selectedImage && (
         <div 
-          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 animate-in fade-in duration-300"
+          className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center p-4 animate-in fade-in duration-300"
           onClick={() => setSelectedImage(null)}
         >
           <button className="absolute top-4 right-4 text-white/70 hover:text-white p-2">
             <X className="w-8 h-8" />
           </button>
           <img 
-            src={selectedImage} 
-            alt="Full size" 
-            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+            src={typeof selectedImage === 'string' ? selectedImage : selectedImage.data} 
+            alt={(typeof selectedImage !== 'string' && selectedImage.caption) || "Full size"} 
+            className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
           />
+          {typeof selectedImage !== 'string' && selectedImage.caption && (
+            <div className="text-white mt-4 text-sm bg-black/50 px-4 py-2 rounded-full backdrop-blur-sm">
+              {selectedImage.caption}
+            </div>
+          )}
         </div>
       )}
     </div>

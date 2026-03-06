@@ -59,12 +59,32 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return Object.entries(months).map(([name, count]) => ({ name, count }));
   }, [experiments]);
 
+  const getGreeting = () => {
+    // Get current time in UTC+8
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const beijingTime = new Date(utc + (3600000 * 8));
+    const hour = beijingTime.getHours();
+    const minute = beijingTime.getMinutes();
+    const timeValue = hour + minute / 60;
+
+    if (timeValue >= 0 && timeValue <= 6) {
+      return '凌晨好，科研人';
+    } else if (timeValue > 6 && timeValue <= 12) {
+      return '早上好，科研人';
+    } else if (timeValue > 12 && timeValue <= 18) {
+      return '下午好，科研人';
+    } else {
+      return '晚上好，科研人';
+    }
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* Welcome Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800 tracking-tight">下午好，科研人</h1>
+          <h1 className="text-3xl font-bold text-slate-800 tracking-tight">{getGreeting()}</h1>
           <p className="text-slate-500 mt-1">今天也要保持严谨，记录下每一个关键发现。</p>
         </div>
         <button 

@@ -35,58 +35,13 @@ export const ExperimentForm: React.FC<ExperimentFormProps> = ({ initialData, onS
   });
 
   const [newTag, setNewTag] = React.useState('');
-  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Timer logic
-  useEffect(() => {
-    timerIntervalRef.current = setInterval(() => {
-      setFormData(prev => {
-        if (!prev.timers || prev.timers.length === 0) return prev;
-        const anyRunning = prev.timers.some(t => t.isRunning);
-        if (!anyRunning) return prev;
-
-        return {
-          ...prev,
-          timers: prev.timers.map(t => {
-            if (t.isRunning) {
-              return { ...t, seconds: t.seconds + 1 };
-            }
-            return t;
-          })
-        };
-      });
-    }, 1000);
-
-    return () => {
-      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-    };
-  }, []);
-
-  const formatTime = (totalSeconds: number) => {
-    const hrs = Math.floor(totalSeconds / 3600);
-    const mins = Math.floor((totalSeconds % 3600) / 60);
-    const secs = totalSeconds % 60;
-    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
 
   const handleAddTimer = () => {
+    const now = new Date();
+    const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
     setFormData(prev => ({
       ...prev,
-      timers: [...(prev.timers || []), { id: crypto.randomUUID(), label: '新计时器', seconds: 0, isRunning: false }]
-    }));
-  };
-
-  const toggleTimer = (id: string) => {
-    setFormData(prev => ({
-      ...prev,
-      timers: prev.timers?.map(t => t.id === id ? { ...t, isRunning: !t.isRunning } : t)
-    }));
-  };
-
-  const resetTimer = (id: string) => {
-    setFormData(prev => ({
-      ...prev,
-      timers: prev.timers?.map(t => t.id === id ? { ...t, seconds: 0, isRunning: false } : t)
+      timers: [...(prev.timers || []), { id: crypto.randomUUID(), label: '新时间点', time: timeString }]
     }));
   };
 
@@ -173,12 +128,24 @@ export const ExperimentForm: React.FC<ExperimentFormProps> = ({ initialData, onS
         reader.onloadend = () => {
           setFormData(prev => ({
             ...prev,
-            images: [...(prev.images || []), reader.result as string]
+            images: [...(prev.images || []), { data: reader.result as string, caption: '' }]
           }));
         };
         reader.readAsDataURL(file);
       });
     }
+  };
+
+  const handleUpdateImageCaption = (index: number, caption: string) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images?.map((img, i) => {
+        if (i === index) {
+          return typeof img === 'string' ? { data: img, caption } : { ...img, caption };
+        }
+        return img;
+      })
+    }));
   };
 
   const handleRemoveImage = (index: number) => {
@@ -307,79 +274,69 @@ export const ExperimentForm: React.FC<ExperimentFormProps> = ({ initialData, onS
           </div>
 
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-            <SectionTitle icon={Timer} title="多组计时器" />
+            <SectionTitle icon={Timer} title="时间点记录" />
             <div className="space-y-3">
               {formData.timers?.map((timer) => (
-                <div key={timer.id} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                  <div className="flex justify-between items-center mb-2">
+                <div key={timer.id} className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between gap-4">
+                  <div className="flex-1">
                     <input 
                       type="text" 
                       value={timer.label}
                       onChange={(e) => updateTimerLabel(timer.id, e.target.value)}
-                      className="bg-transparent text-xs font-bold text-slate-500 uppercase outline-none focus:text-brand-accent w-2/3"
+                      placeholder="时间点名称"
+                      className="bg-transparent text-sm font-bold text-slate-700 outline-none focus:text-brand-accent w-full mb-1"
                     />
-                    <button 
-                      type="button" 
-                      onClick={() => removeTimer(timer.id)}
-                      className="text-slate-300 hover:text-rose-500"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="text-xl font-mono font-bold text-slate-700">
-                      {formatTime(timer.seconds)}
-                    </div>
-                    <div className="flex gap-1">
-                      <button 
-                        type="button"
-                        onClick={() => toggleTimer(timer.id)}
-                        className={`p-1.5 rounded-lg transition-colors ${
-                          timer.isRunning ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'
-                        }`}
-                      >
-                        {timer.isRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                      </button>
-                      <button 
-                        type="button"
-                        onClick={() => resetTimer(timer.id)}
-                        className="p-1.5 bg-slate-200 text-slate-600 rounded-lg hover:bg-slate-300"
-                      >
-                        <RotateCcw className="w-4 h-4" />
-                      </button>
+                    <div className="text-xs font-mono text-slate-500">
+                      {timer.time}
                     </div>
                   </div>
+                  <button 
+                    type="button" 
+                    onClick={() => removeTimer(timer.id)}
+                    className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               ))}
               <button 
                 type="button"
                 onClick={handleAddTimer}
-                className="w-full py-2 border-2 border-dashed border-slate-100 rounded-lg text-slate-400 text-xs hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
+                className="w-full py-3 border-2 border-dashed border-slate-200 rounded-xl text-slate-500 text-sm font-medium hover:bg-slate-50 hover:border-brand-accent/30 hover:text-brand-accent transition-all flex items-center justify-center gap-2"
               >
-                <Plus className="w-3 h-3" />
-                添加计时器
+                <Plus className="w-4 h-4" />
+                记录当前时间
               </button>
             </div>
           </div>
 
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
             <SectionTitle icon={ImageIcon} title="实验图片" />
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-4">
               {formData.images?.map((img, idx) => (
-                <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-slate-100 group">
-                  <img src={img} alt="Experiment" className="w-full h-full object-cover" />
-                  <button 
-                    type="button"
-                    onClick={() => handleRemoveImage(idx)}
-                    className="absolute top-1 right-1 p-1 bg-rose-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
+                <div key={idx} className="relative flex flex-col gap-2 group">
+                  <div className="relative aspect-square rounded-lg overflow-hidden border border-slate-100">
+                    <img src={typeof img === 'string' ? img : img.data} alt="Experiment" className="w-full h-full object-cover" />
+                    <button 
+                      type="button"
+                      onClick={() => handleRemoveImage(idx)}
+                      className="absolute top-2 right-2 p-1.5 bg-rose-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <input 
+                    type="text"
+                    value={typeof img === 'string' ? '' : img.caption}
+                    onChange={(e) => handleUpdateImageCaption(idx, e.target.value)}
+                    placeholder="添加图片备注..."
+                    className="w-full text-xs px-2 py-1.5 bg-slate-50 border border-slate-200 rounded focus:ring-1 focus:ring-brand-accent/30 outline-none text-slate-600"
+                  />
                 </div>
               ))}
               <label className="aspect-square rounded-lg border-2 border-dashed border-slate-200 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors">
                 <Plus className="w-6 h-6 text-slate-300" />
-                <span className="text-[10px] text-slate-400 mt-1">上传图片</span>
+                <span className="text-xs text-slate-400 mt-2 font-medium">上传图片</span>
                 <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} />
               </label>
             </div>
