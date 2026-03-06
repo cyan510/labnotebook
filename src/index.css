@@ -1,0 +1,27 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --color-brand-primary: #003366;
+  --color-brand-secondary: #f8fafc;
+  --color-brand-accent: #3b82f6;
+  
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-brand-secondary text-slate-900;
+  }
+}
+
+.markdown-body {
+  @apply prose prose-slate max-w-none;
+}
+
+.markdown-body h1 { @apply text-2xl font-bold mb-4; }
+.markdown-body h2 { @apply text-xl font-semibold mb-3; }
+.markdown-body p { @apply mb-4 leading-relaxed; }
+.markdown-body ul { @apply list-disc pl-5 mb-4; }
+.markdown-body ol { @apply list-decimal pl-5 mb-4; }
+
