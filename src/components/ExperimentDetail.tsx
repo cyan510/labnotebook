@@ -2,8 +2,9 @@ import React from 'react';
 import { 
   ArrowLeft, Calendar, Tag, Clock, 
   FileText, ClipboardList, Database, 
-  MessageSquare, AlertCircle, Share2, Printer, 
-  ChevronRight, ChevronLeft, Maximize2, X
+  MessageSquare, AlertCircle, Share2, 
+  ChevronRight, ChevronLeft, Maximize2, X,
+  Edit3, Trash2, Check, Copy
 } from 'lucide-react';
 import { ExperimentRecord } from '../types';
 import { format } from 'date-fns';
@@ -13,10 +14,38 @@ import ReactMarkdown from 'react-markdown';
 interface ExperimentDetailProps {
   experiment: ExperimentRecord;
   onBack: () => void;
+  onEdit: (exp: ExperimentRecord) => void;
+  onDelete: (id: string) => void;
 }
 
-export const ExperimentDetail: React.FC<ExperimentDetailProps> = ({ experiment, onBack }) => {
+export const ExperimentDetail: React.FC<ExperimentDetailProps> = ({ experiment, onBack, onEdit, onDelete }) => {
   const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+  const [showShareToast, setShowShareToast] = React.useState(false);
+
+  const handleShare = async () => {
+    const summary = `
+实验标题: ${experiment.title}
+日期: ${experiment.date}
+类型: ${experiment.type}
+状态: ${experiment.status}
+
+实验目的:
+${experiment.purpose || '无'}
+
+实验结果:
+${experiment.results || '无'}
+    `.trim();
+
+    try {
+      await navigator.clipboard.writeText(summary);
+      setShowShareToast(true);
+      setTimeout(() => setShowShareToast(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy: ', err);
+      alert('复制失败，请手动选择文本复制');
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -56,16 +85,56 @@ export const ExperimentDetail: React.FC<ExperimentDetailProps> = ({ experiment, 
           </div>
         </div>
         <div className="flex gap-2">
-          <button className="p-2 text-slate-500 hover:text-brand-accent hover:bg-slate-100 rounded-lg transition-all" title="分享">
-            <Share2 className="w-5 h-5" />
-          </button>
-          <button 
-            onClick={() => window.print()}
-            className="p-2 text-slate-500 hover:text-brand-accent hover:bg-slate-100 rounded-lg transition-all" 
-            title="打印"
-          >
-            <Printer className="w-5 h-5" />
-          </button>
+          {isDeleting ? (
+            <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-2">
+              <span className="text-xs font-bold text-rose-500">确定删除？</span>
+              <button 
+                onClick={() => onDelete(experiment.id)}
+                className="p-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-all"
+                title="确认删除"
+              >
+                <Check className="w-4 h-4" />
+              </button>
+              <button 
+                onClick={() => setIsDeleting(false)}
+                className="p-2 bg-slate-200 text-slate-600 rounded-lg hover:bg-slate-300 transition-all"
+                title="取消"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <>
+              <button 
+                onClick={() => onEdit(experiment)}
+                className="p-2 text-slate-500 hover:text-brand-accent hover:bg-slate-100 rounded-lg transition-all" 
+                title="编辑"
+              >
+                <Edit3 className="w-5 h-5" />
+              </button>
+              <button 
+                onClick={() => setIsDeleting(true)}
+                className="p-2 text-slate-500 hover:text-rose-500 hover:bg-slate-100 rounded-lg transition-all" 
+                title="删除"
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
+              <div className="relative">
+                <button 
+                  onClick={handleShare}
+                  className="p-2 text-slate-500 hover:text-brand-accent hover:bg-slate-100 rounded-lg transition-all" 
+                  title="分享摘要"
+                >
+                  <Share2 className="w-5 h-5" />
+                </button>
+                {showShareToast && (
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-slate-800 text-white text-[10px] rounded-full whitespace-nowrap animate-in fade-in slide-in-from-bottom-1">
+                    已复制摘要到剪贴板
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
 

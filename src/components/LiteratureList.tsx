@@ -15,6 +15,34 @@ interface LiteratureListProps {
   onDelete: (id: string) => void;
 }
 
+const DeleteButton: React.FC<{ onDelete: () => void }> = ({ onDelete }) => {
+  const [confirmDelete, setConfirmDelete] = React.useState(false);
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirmDelete) {
+      onDelete();
+    } else {
+      setConfirmDelete(true);
+      setTimeout(() => setConfirmDelete(false), 3000);
+    }
+  };
+
+  return (
+    <button 
+      onClick={handleClick}
+      className={`p-2 rounded-lg transition-all flex items-center gap-1 ${
+        confirmDelete 
+        ? 'bg-rose-500 text-white px-3 text-xs font-bold animate-pulse' 
+        : 'text-slate-400 hover:text-rose-500 hover:bg-rose-50'
+      }`}
+    >
+      <Trash2 className="w-4 h-4" />
+      {confirmDelete && "确定删除？"}
+    </button>
+  );
+};
+
 export const LiteratureList: React.FC<LiteratureListProps> = ({ literature, onAdd, onEdit, onDelete }) => {
   const [search, setSearch] = React.useState('');
   const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
@@ -84,15 +112,11 @@ export const LiteratureList: React.FC<LiteratureListProps> = ({ literature, onAd
                     <button 
                       onClick={() => onEdit(lit)}
                       className="p-2 text-slate-400 hover:text-brand-accent hover:bg-slate-50 rounded-lg"
+                      title="编辑"
                     >
                       <Edit3 className="w-4 h-4" />
                     </button>
-                    <button 
-                      onClick={() => { if(confirm('确定删除该文献记录吗？')) onDelete(lit.id); }}
-                      className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <DeleteButton onDelete={() => onDelete(lit.id)} />
                   </div>
                 </div>
 

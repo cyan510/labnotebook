@@ -12,12 +12,24 @@ interface ExperimentCardProps {
 }
 
 const ExperimentCard: React.FC<ExperimentCardProps> = ({ experiment, onClick, onDelete, onEdit }) => {
+  const [confirmDelete, setConfirmDelete] = React.useState(false);
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case '进行中': return 'bg-blue-100 text-blue-700 border-blue-200';
       case '已完成': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
       case '已失败': return 'bg-rose-100 text-rose-700 border-rose-200';
       default: return 'bg-slate-100 text-slate-700 border-slate-200';
+    }
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirmDelete) {
+      onDelete(e);
+    } else {
+      setConfirmDelete(true);
+      setTimeout(() => setConfirmDelete(false), 3000);
     }
   };
 
@@ -31,18 +43,25 @@ const ExperimentCard: React.FC<ExperimentCardProps> = ({ experiment, onClick, on
           <span className={`text-xs font-semibold px-2 py-1 rounded-full border ${getStatusColor(experiment.status)}`}>
             {experiment.status}
           </span>
-          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
+            {!confirmDelete && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); onEdit(e); }}
+                className="p-1.5 text-slate-400 hover:text-brand-accent hover:bg-slate-50 rounded-lg transition-colors"
+              >
+                <Edit3 className="w-4 h-4" />
+              </button>
+            )}
             <button 
-              onClick={onEdit}
-              className="p-1.5 text-slate-400 hover:text-brand-accent hover:bg-slate-50 rounded-lg transition-colors"
-            >
-              <Edit3 className="w-4 h-4" />
-            </button>
-            <button 
-              onClick={onDelete}
-              className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+              onClick={handleDelete}
+              className={`p-1.5 rounded-lg transition-all flex items-center gap-1 ${
+                confirmDelete 
+                ? 'bg-rose-500 text-white px-2 text-[10px] font-bold animate-pulse' 
+                : 'text-slate-400 hover:text-rose-500 hover:bg-rose-50'
+              }`}
             >
               <Trash2 className="w-4 h-4" />
+              {confirmDelete && "确定？"}
             </button>
           </div>
         </div>
@@ -165,7 +184,7 @@ export const ExperimentList: React.FC<ExperimentListProps> = ({ experiments, onV
               experiment={exp} 
               onClick={() => onView(exp)}
               onEdit={(e) => { e.stopPropagation(); onEdit(exp); }}
-              onDelete={(e) => { e.stopPropagation(); if(confirm('确定删除该实验记录吗？')) onDelete(exp.id); }}
+              onDelete={(e) => { e.stopPropagation(); onDelete(exp.id); }}
             />
           ))}
         </div>

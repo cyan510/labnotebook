@@ -81,6 +81,14 @@ export default function App() {
         <ExperimentDetail 
           experiment={viewingExperiment} 
           onBack={() => setViewingExperiment(null)} 
+          onEdit={(exp) => {
+            setViewingExperiment(null);
+            setEditingExperiment(exp);
+          }}
+          onDelete={(id) => {
+            handleDeleteExperiment(id);
+            setViewingExperiment(null);
+          }}
         />
       );
     }
