@@ -30,10 +30,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onViewLiterature
 }) => {
   const stats = [
-    { label: '总实验数', value: experiments.length, icon: Library, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: '进行中', value: experiments.filter(e => e.status === '进行中').length, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
-    { label: '已完成', value: experiments.filter(e => e.status === '已完成').length, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: '文献库', value: literature.length, icon: BookOpen, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+    { label: '总实验数', value: experiments.length, icon: Library, color: 'text-blue-600', bg: 'bg-blue-50', onClick: onViewLibrary },
+    { label: '进行中', value: experiments.filter(e => e.status === '进行中').length, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', onClick: onViewLibrary },
+    { label: '已完成', value: experiments.filter(e => e.status === '已完成').length, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', onClick: onViewLibrary },
+    { label: '文献库', value: literature.length, icon: BookOpen, color: 'text-indigo-600', bg: 'bg-indigo-50', onClick: onViewLiterature },
   ];
 
   const recentExperiments = experiments.slice(0, 5);
@@ -99,7 +99,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {stats.map((stat, idx) => (
-          <div key={idx} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <div 
+            key={idx} 
+            onClick={stat.onClick}
+            className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all cursor-pointer hover:-translate-y-1"
+          >
             <div className={`${stat.bg} w-10 h-10 rounded-xl flex items-center justify-center mb-4`}>
               <stat.icon className={`${stat.color} w-5 h-5`} />
             </div>
@@ -199,14 +203,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </div>
 
       {/* Literature Quick Access */}
-      <div className="bg-brand-primary rounded-3xl p-8 text-white flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative">
+      <div 
+        onClick={onViewLiterature}
+        className="bg-brand-primary rounded-3xl p-8 text-white flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative cursor-pointer hover:shadow-lg hover:shadow-brand-primary/20 transition-all active:scale-[0.99]"
+      >
         <div className="relative z-10">
           <h3 className="text-2xl font-bold mb-2">文献实验库</h3>
           <p className="text-white/70 max-w-md">
             将论文中的实验流程转化为结构化记录，方便随时对比与复现。目前已收录 {literature.length} 篇关键文献。
           </p>
           <button 
-            onClick={onViewLiterature}
             className="mt-6 bg-white text-brand-primary px-6 py-2 rounded-xl font-bold hover:bg-white/90 transition-all flex items-center gap-2"
           >
             进入库

@@ -110,7 +110,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ experiments }) =
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {/* Basic Info Rows */}
+                    {/* Experiment Status */}
                     <tr>
                       <td className="px-6 py-4 text-xs font-bold text-slate-400 uppercase bg-slate-50/50 border-r border-slate-100">实验状态</td>
                       {selectedExperiments.map(exp => (
@@ -125,37 +125,76 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({ experiments }) =
                       ))}
                     </tr>
                     
-                    {/* Dynamic Data Rows */}
-                    {allDataLabels.map(label => (
-                      <tr key={label}>
-                        <td className="px-6 py-4 text-xs font-bold text-slate-400 uppercase bg-slate-50/50 border-r border-slate-100">{label}</td>
-                        {selectedExperiments.map(exp => {
-                          const dataPoint = exp.data.find(d => d.label === label);
-                          return (
-                            <td key={exp.id} className="px-6 py-4 text-sm font-mono text-slate-700 border-r border-slate-100 last:border-r-0">
-                              {dataPoint ? `${dataPoint.value} ${dataPoint.unit}` : '-'}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-
-                    {/* Results Summary Row */}
+                    {/* Materials & Reagents */}
                     <tr>
-                      <td className="px-6 py-4 text-xs font-bold text-slate-400 uppercase bg-slate-50/50 border-r border-slate-100">实验结果</td>
+                      <td className="px-6 py-4 text-xs font-bold text-slate-400 uppercase bg-slate-50/50 border-r border-slate-100">材料与试剂</td>
                       {selectedExperiments.map(exp => (
                         <td key={exp.id} className="px-6 py-4 text-sm text-slate-600 border-r border-slate-100 last:border-r-0">
-                          <div className="line-clamp-3 text-xs leading-relaxed">{exp.results || '未填写'}</div>
+                          <div className="whitespace-pre-wrap text-xs leading-relaxed">{exp.materials || '未填写'}</div>
                         </td>
                       ))}
                     </tr>
 
-                    {/* Reflection Row */}
+                    {/* Experiment Steps */}
                     <tr>
-                      <td className="px-6 py-4 text-xs font-bold text-slate-400 uppercase bg-slate-50/50 border-r border-slate-100">反思/心得</td>
+                      <td className="px-6 py-4 text-xs font-bold text-slate-400 uppercase bg-slate-50/50 border-r border-slate-100">实验步骤</td>
+                      {selectedExperiments.map(exp => (
+                        <td key={exp.id} className="px-6 py-4 text-sm text-slate-600 border-r border-slate-100 last:border-r-0">
+                          <div className="space-y-2">
+                            {exp.steps.length > 0 ? exp.steps.map((step, idx) => (
+                              <div key={step.id} className="text-xs leading-relaxed flex gap-2">
+                                <span className="font-medium text-slate-400">{idx + 1}.</span>
+                                <span>{step.content}</span>
+                              </div>
+                            )) : <span className="text-xs">未填写</span>}
+                          </div>
+                        </td>
+                      ))}
+                    </tr>
+
+                    {/* Process Records */}
+                    <tr>
+                      <td className="px-6 py-4 text-xs font-bold text-slate-400 uppercase bg-slate-50/50 border-r border-slate-100">过程记录</td>
+                      {selectedExperiments.map(exp => (
+                        <td key={exp.id} className="px-6 py-4 text-sm text-slate-600 border-r border-slate-100 last:border-r-0">
+                          <div className="whitespace-pre-wrap text-xs leading-relaxed line-clamp-6 hover:line-clamp-none transition-all">{exp.process || '未填写'}</div>
+                        </td>
+                      ))}
+                    </tr>
+
+                    {/* Experimental Data */}
+                    <tr>
+                      <td className="px-6 py-4 text-xs font-bold text-slate-400 uppercase bg-slate-50/50 border-r border-slate-100">实验数据</td>
+                      {selectedExperiments.map(exp => (
+                        <td key={exp.id} className="px-6 py-4 text-sm text-slate-600 border-r border-slate-100 last:border-r-0">
+                          <div className="space-y-1">
+                            {exp.data.length > 0 ? exp.data.map(d => (
+                              <div key={d.id} className="text-xs flex justify-between border-b border-slate-50 pb-1 last:border-0">
+                                <span className="text-slate-500">{d.label}:</span>
+                                <span className="font-mono font-medium">{d.value} {d.unit}</span>
+                              </div>
+                            )) : <span className="text-xs">未填写</span>}
+                          </div>
+                        </td>
+                      ))}
+                    </tr>
+
+                    {/* Experimental Results */}
+                    <tr>
+                      <td className="px-6 py-4 text-xs font-bold text-slate-400 uppercase bg-slate-50/50 border-r border-slate-100">实验结果</td>
+                      {selectedExperiments.map(exp => (
+                        <td key={exp.id} className="px-6 py-4 text-sm text-slate-600 border-r border-slate-100 last:border-r-0">
+                          <div className="whitespace-pre-wrap text-xs leading-relaxed line-clamp-6 hover:line-clamp-none transition-all">{exp.results || '未填写'}</div>
+                        </td>
+                      ))}
+                    </tr>
+
+                    {/* Experimental Reflection */}
+                    <tr>
+                      <td className="px-6 py-4 text-xs font-bold text-slate-400 uppercase bg-slate-50/50 border-r border-slate-100">实验反思</td>
                       {selectedExperiments.map(exp => (
                         <td key={exp.id} className="px-6 py-4 text-sm text-slate-600 italic border-r border-slate-100 last:border-r-0">
-                          <div className="line-clamp-3 text-xs leading-relaxed">{exp.reflection || '未填写'}</div>
+                          <div className="whitespace-pre-wrap text-xs leading-relaxed line-clamp-6 hover:line-clamp-none transition-all">{exp.reflection || '未填写'}</div>
                         </td>
                       ))}
                     </tr>

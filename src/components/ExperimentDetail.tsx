@@ -11,7 +11,7 @@ import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import ReactMarkdown from 'react-markdown';
 
-import { toPng } from 'html-to-image';
+import { domToJpeg } from 'modern-screenshot';
 
 interface ExperimentDetailProps {
   experiment: ExperimentRecord;
@@ -26,28 +26,116 @@ export const ExperimentDetail: React.FC<ExperimentDetailProps> = ({ experiment, 
   const [showShareToast, setShowShareToast] = React.useState(false);
 
   const handleShare = async () => {
-    const element = document.getElementById('experiment-detail-content');
-    if (!element) return;
+    const originalElement = document.getElementById('experiment-detail-content');
+    if (!originalElement) return;
     
     try {
+      // Save current scroll position
+      const scrollY = window.scrollY;
+      window.scrollTo(0, 0);
+
       // Temporarily hide the header actions for cleaner screenshot
       const actionsEl = document.getElementById('experiment-detail-actions');
       if (actionsEl) actionsEl.style.display = 'none';
 
-      const dataUrl = await toPng(element, {
-        pixelRatio: 2,
-        backgroundColor: '#ffffff',
+      const captureWidth = 800;
+
+      // Create a clone to modify without affecting the visible UI
+      const clonedElement = originalElement.cloneNode(true) as HTMLElement;
+      clonedElement.id = 'experiment-detail-content-clone';
+      
+      // Apply styles to the clone to force single column layout and fix rendering issues
+      clonedElement.style.position = 'absolute';
+      clonedElement.style.left = '0';
+      clonedElement.style.top = '0';
+      clonedElement.style.zIndex = '-9999';
+      clonedElement.style.width = `${captureWidth}px`;
+      clonedElement.style.height = 'auto';
+      clonedElement.style.minHeight = 'auto';
+      clonedElement.style.animation = 'none';
+      clonedElement.style.transform = 'none';
+      clonedElement.style.backgroundColor = '#f8fafc'; // bg-slate-50
+      clonedElement.style.padding = '24px';
+      clonedElement.style.paddingBottom = '24px';
+      
+      // Force single column layout on the clone for better readability and complete rendering
+      const mainGrid = clonedElement.querySelector('.lg\\:grid-cols-3');
+      if (mainGrid) {
+        mainGrid.classList.remove('lg:grid-cols-3');
+        mainGrid.classList.add('grid-cols-1');
+        (mainGrid as HTMLElement).style.display = 'flex';
+        (mainGrid as HTMLElement).style.flexDirection = 'column';
+      }
+      
+      const mainContent = clonedElement.querySelector('.lg\\:col-span-2');
+      if (mainContent) {
+        mainContent.classList.remove('lg:col-span-2');
+        mainContent.classList.add('col-span-1');
+      }
+      
+      const sidebar = clonedElement.querySelector('.lg\\:col-span-1');
+      if (sidebar) {
+        sidebar.classList.remove('lg:col-span-1');
+        sidebar.classList.add('col-span-1');
+      }
+
+      const subGrid = clonedElement.querySelector('.md\\:grid-cols-2');
+      if (subGrid) {
+        subGrid.classList.remove('md:grid-cols-2');
+        subGrid.classList.add('grid-cols-1');
+      }
+
+      // Hide actions in clone
+      const cloneActions = clonedElement.querySelector('#experiment-detail-actions');
+      if (cloneActions) (cloneActions as HTMLElement).style.display = 'none';
+      
+      // Fix sticky header in clone
+      const header = clonedElement.querySelector('.sticky');
+      if (header) {
+        header.classList.remove('sticky', 'top-16');
+        (header as HTMLElement).style.position = 'relative';
+        (header as HTMLElement).style.top = '0';
+        (header as HTMLElement).style.marginBottom = '24px';
+      }
+      
+      // Ensure images are fully visible
+      const images = clonedElement.querySelectorAll('img');
+      images.forEach(img => {
+        img.loading = 'eager';
+        img.style.maxWidth = '100%';
+        img.style.objectFit = 'contain';
+        img.style.height = 'auto';
+      });
+
+      // Append clone to body
+      document.body.appendChild(clonedElement);
+
+      // Small delay to ensure any pending renders or image decodes are complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const dataUrl = await domToJpeg(clonedElement, {
+        quality: 0.9,
+        scale: 2,
+        backgroundColor: '#f8fafc',
+        width: captureWidth,
         style: {
-          transform: 'scale(1)',
-          transformOrigin: 'top left'
+          transform: 'none',
+          animation: 'none',
+          transition: 'none'
         }
       });
       
+      // Remove clone
+      document.body.removeChild(clonedElement);
+      
       if (actionsEl) actionsEl.style.display = 'flex';
+      
+      // Restore scroll position
+      window.scrollTo(0, scrollY);
 
       const link = document.createElement('a');
       link.href = dataUrl;
-      link.download = `${experiment.title}_实验记录.png`;
+      link.download = `${experiment.title}_实验记录.jpg`;
       link.click();
       
       setShowShareToast(true);
