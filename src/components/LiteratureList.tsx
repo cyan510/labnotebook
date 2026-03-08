@@ -8,6 +8,8 @@ import {
 import { LiteratureRecord } from '../types';
 import { format } from 'date-fns';
 
+import { compressImage } from '../utils/image';
+
 interface LiteratureListProps {
   literature: LiteratureRecord[];
   onAdd: () => void;
@@ -245,19 +247,21 @@ export const LiteratureForm: React.FC<LiteratureFormProps> = ({ initialData, onS
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
-      Array.from(files).forEach(file => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
+      for (const file of Array.from(files)) {
+        try {
+          const dataUrl = await compressImage(file);
           setFormData(prev => ({
             ...prev,
-            images: [...(prev.images || []), { data: reader.result as string, caption: '' }]
+            images: [...(prev.images || []), { data: dataUrl, caption: '' }]
           }));
-        };
-        reader.readAsDataURL(file);
-      });
+        } catch (error) {
+          console.error('Error compressing image:', error);
+          alert('图片处理失败，请重试');
+        }
+      }
     }
   };
 

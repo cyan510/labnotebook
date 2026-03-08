@@ -40,6 +40,7 @@ export interface ExperimentRecord {
   results: string;
   images: ExperimentImage[]; // Base64 strings with captions
   reflection: string;
+  tips?: string;
   timers?: ExperimentTimer[];
   createdAt: number;
   updatedAt: number;

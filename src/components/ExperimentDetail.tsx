@@ -304,6 +304,19 @@ export const ExperimentDetail: React.FC<ExperimentDetailProps> = ({ experiment, 
             </div>
           </section>
 
+          {/* Tips */}
+          {experiment.tips && (
+            <section className="bg-amber-50/50 p-8 rounded-2xl border border-amber-200 shadow-sm">
+              <div className="flex items-center gap-2 text-amber-700 font-bold text-lg mb-4">
+                <AlertCircle className="w-5 h-5" />
+                实验提示
+              </div>
+              <div className="text-amber-900 leading-relaxed whitespace-pre-wrap">
+                {experiment.tips}
+              </div>
+            </section>
+          )}
+
           {/* Data Table */}
           {experiment.data.length > 0 && (
             <section className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">

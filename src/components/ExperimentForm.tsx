@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { ExperimentRecord, ExperimentStep, ExperimentDataRow, ExperimentStatus, ExperimentTimer } from '../types';
 
+import { compressImage } from '../utils/image';
+
 interface ExperimentFormProps {
   initialData?: Partial<ExperimentRecord>;
   onSave: (data: ExperimentRecord) => void;
@@ -120,19 +122,21 @@ export const ExperimentForm: React.FC<ExperimentFormProps> = ({ initialData, onS
     setFormData(prev => ({ ...prev, tags: prev.tags?.filter(t => t !== tag) }));
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
-      Array.from(files).forEach(file => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
+      for (const file of Array.from(files)) {
+        try {
+          const dataUrl = await compressImage(file);
           setFormData(prev => ({
             ...prev,
-            images: [...(prev.images || []), { data: reader.result as string, caption: '' }]
+            images: [...(prev.images || []), { data: dataUrl, caption: '' }]
           }));
-        };
-        reader.readAsDataURL(file);
-      });
+        } catch (error) {
+          console.error('Error compressing image:', error);
+          alert('图片处理失败，请重试');
+        }
+      }
     }
   };
 
@@ -432,6 +436,18 @@ export const ExperimentForm: React.FC<ExperimentFormProps> = ({ initialData, onS
                 rows={4}
                 className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-accent/20 outline-none"
                 placeholder="详细记录实验过程中的现象、温度变化、异常情况等..."
+              />
+            </div>
+
+            <div>
+              <SectionTitle icon={AlertCircle} title="实验提示" />
+              <textarea 
+                name="tips"
+                value={formData.tips || ''}
+                onChange={handleChange}
+                rows={3}
+                className="w-full px-4 py-2 bg-amber-50/50 border border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 outline-none text-amber-900 placeholder:text-amber-700/50"
+                placeholder="记录实验中需要注意的关键点、安全提示或经验教训..."
               />
             </div>
           </div>
