@@ -1,3 +1,4 @@
+import localforage from 'localforage';
 import { AppState, ExperimentRecord, LiteratureRecord } from '../types';
 
 const STORAGE_KEY = 'lab_notebook_data';
@@ -34,48 +35,33 @@ const DEFAULT_STATE: AppState = {
 };
 
 export const storage = {
-  save: (state: AppState) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  },
-  load: (): AppState => {
-    const data = localStorage.getItem(STORAGE_KEY);
-    if (!data) return DEFAULT_STATE;
+  save: async (state: AppState) => {
     try {
-      const parsed = JSON.parse(data);
-      // Ensure templates are always present
-      return { ...DEFAULT_STATE, ...parsed };
+      await localforage.setItem(STORAGE_KEY, state);
     } catch (e) {
-      return DEFAULT_STATE;
+      console.error('Failed to save state to localforage', e);
     }
   },
-  addExperiment: (exp: ExperimentRecord) => {
-    const state = storage.load();
-    state.experiments.unshift(exp);
-    storage.save(state);
-  },
-  updateExperiment: (exp: ExperimentRecord) => {
-    const state = storage.load();
-    state.experiments = state.experiments.map(e => e.id === exp.id ? exp : e);
-    storage.save(state);
-  },
-  deleteExperiment: (id: string) => {
-    const state = storage.load();
-    state.experiments = state.experiments.filter(e => e.id !== id);
-    storage.save(state);
-  },
-  addLiterature: (lit: LiteratureRecord) => {
-    const state = storage.load();
-    state.literature.unshift(lit);
-    storage.save(state);
-  },
-  updateLiterature: (lit: LiteratureRecord) => {
-    const state = storage.load();
-    state.literature = state.literature.map(l => l.id === lit.id ? lit : l);
-    storage.save(state);
-  },
-  deleteLiterature: (id: string) => {
-    const state = storage.load();
-    state.literature = state.literature.filter(l => l.id !== id);
-    storage.save(state);
+  load: async (): Promise<AppState> => {
+    try {
+      const data = await localforage.getItem<AppState>(STORAGE_KEY);
+      if (!data) {
+        // Fallback to localStorage for backward compatibility
+        const oldData = localStorage.getItem(STORAGE_KEY);
+        if (oldData) {
+          try {
+            const parsed = JSON.parse(oldData);
+            return { ...DEFAULT_STATE, ...parsed };
+          } catch (e) {
+            return DEFAULT_STATE;
+          }
+        }
+        return DEFAULT_STATE;
+      }
+      return { ...DEFAULT_STATE, ...data };
+    } catch (e) {
+      console.error('Failed to load state from localforage', e);
+      return DEFAULT_STATE;
+    }
   }
 };

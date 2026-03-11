@@ -241,6 +241,7 @@ export const LiteratureForm: React.FC<LiteratureFormProps> = ({ initialData, onS
     notes: initialData?.notes || '',
     createdAt: initialData?.createdAt || Date.now(),
   });
+  const [isUploading, setIsUploading] = React.useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -250,17 +251,22 @@ export const LiteratureForm: React.FC<LiteratureFormProps> = ({ initialData, onS
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
-      for (const file of Array.from(files)) {
-        try {
-          const dataUrl = await compressImage(file);
-          setFormData(prev => ({
-            ...prev,
-            images: [...(prev.images || []), { data: dataUrl, caption: '' }]
-          }));
-        } catch (error) {
-          console.error('Error compressing image:', error);
-          alert('图片处理失败，请重试');
+      setIsUploading(true);
+      try {
+        for (const file of Array.from(files)) {
+          try {
+            const dataUrl = await compressImage(file);
+            setFormData(prev => ({
+              ...prev,
+              images: [...(prev.images || []), { data: dataUrl, caption: '' }]
+            }));
+          } catch (error) {
+            console.error('Error compressing image:', error);
+            alert('图片处理失败，请重试');
+          }
         }
+      } finally {
+        setIsUploading(false);
       }
     }
   };
@@ -397,7 +403,7 @@ export const LiteratureForm: React.FC<LiteratureFormProps> = ({ initialData, onS
           
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">文献配图</label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-2">
               {formData.images?.map((img, idx) => (
                 <div key={idx} className="relative flex flex-col gap-2 group">
                   <div className="relative aspect-square rounded-lg overflow-hidden border border-slate-100">
@@ -419,10 +425,19 @@ export const LiteratureForm: React.FC<LiteratureFormProps> = ({ initialData, onS
                   />
                 </div>
               ))}
-              <label className="aspect-square rounded-lg border-2 border-dashed border-slate-200 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors">
-                <Plus className="w-6 h-6 text-slate-300" />
-                <span className="text-xs text-slate-400 mt-2 font-medium">上传图片</span>
-                <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} />
+              <label className="aspect-square rounded-lg border-2 border-dashed border-slate-200 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors relative">
+                {isUploading ? (
+                  <div className="flex flex-col items-center justify-center">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-slate-400 mb-2"></div>
+                    <span className="text-xs text-slate-400 font-medium">处理中...</span>
+                  </div>
+                ) : (
+                  <>
+                    <Plus className="w-6 h-6 text-slate-300" />
+                    <span className="text-xs text-slate-400 mt-2 font-medium">上传图片</span>
+                  </>
+                )}
+                <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isUploading} />
               </label>
             </div>
           </div>

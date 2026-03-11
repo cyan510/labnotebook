@@ -11,19 +11,36 @@ import { ExperimentRecord, LiteratureRecord, AppState } from './types';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [appState, setAppState] = useState<AppState>(storage.load());
+  const [appState, setAppState] = useState<AppState | null>(null);
   const [viewingExperiment, setViewingExperiment] = useState<ExperimentRecord | null>(null);
   const [editingExperiment, setEditingExperiment] = useState<ExperimentRecord | null>(null);
   const [editingLiterature, setEditingLiterature] = useState<LiteratureRecord | null>(null);
   const [isAddingLiterature, setIsAddingLiterature] = useState(false);
 
+  useEffect(() => {
+    storage.load().then(state => {
+      setAppState(state);
+    });
+  }, []);
+
   // Sync state to storage whenever it changes
   useEffect(() => {
-    storage.save(appState);
+    if (appState) {
+      storage.save(appState);
+    }
   }, [appState]);
+
+  if (!appState) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary"></div>
+      </div>
+    );
+  }
 
   const handleSaveExperiment = (exp: ExperimentRecord) => {
     setAppState(prev => {
+      if (!prev) return prev;
       const exists = prev.experiments.some(e => e.id === exp.id);
       if (exists) {
         return {
@@ -42,14 +59,15 @@ export default function App() {
   };
 
   const handleDeleteExperiment = (id: string) => {
-    setAppState(prev => ({
+    setAppState(prev => prev ? ({
       ...prev,
       experiments: prev.experiments.filter(e => e.id !== id)
-    }));
+    }) : prev);
   };
 
   const handleSaveLiterature = (lit: LiteratureRecord) => {
     setAppState(prev => {
+      if (!prev) return prev;
       const exists = prev.literature.some(l => l.id === lit.id);
       if (exists) {
         return {
@@ -68,10 +86,10 @@ export default function App() {
   };
 
   const handleDeleteLiterature = (id: string) => {
-    setAppState(prev => ({
+    setAppState(prev => prev ? ({
       ...prev,
       literature: prev.literature.filter(l => l.id !== id)
-    }));
+    }) : prev);
   };
 
   const renderContent = () => {

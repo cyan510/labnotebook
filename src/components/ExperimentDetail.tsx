@@ -425,7 +425,7 @@ export const ExperimentDetail: React.FC<ExperimentDetailProps> = ({ experiment, 
           {experiment.images.length > 0 && (
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
               <h3 className="font-bold text-slate-800 border-b border-slate-100 pb-2">实验图库</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {experiment.images.map((img, idx) => (
                   <div key={idx} className="flex flex-col gap-2">
                     <div 
